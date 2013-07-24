@@ -13,7 +13,7 @@ var exec 			= require('child_process').exec;
 // This program requires the following external programs:
 // tidy (for validating html)
 // unzip
-// 7z (for compressing)
+// zip
 // bash
 
 var storiesCached = {};

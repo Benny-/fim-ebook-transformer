@@ -5,5 +5,8 @@ set -e
 
 cd ${1}
 
-7z a -mx9 -tzip "../processed.epub" *
+# The mimetype must be the first element in the zip. epub specs.
+zip -X   "../processed.epub" mimetype
+zip -Xrg "../processed.epub" META-INF
+zip -Xrg "../processed.epub" .
 
