@@ -3,7 +3,7 @@
 # This will make the script return a error if any sub-command returns a error
 set -e
 
-files=`echo "${1}/*.html"`
+cd ${1}
 
-tidy -utf8 -quiet -modify $files
+7z a -mx9 -tzip "../processed.epub" *
 

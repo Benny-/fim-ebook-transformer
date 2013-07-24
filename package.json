@@ -13,7 +13,6 @@
   ],
   "dependencies" : {
     "step"      :  "0.0.x",
-  	"adm-zip"	:  "0.4.x",
 	"temp"		:  "0.5.x",
     "request"   :  "2.21.x",
     "cheerio"   :  "0.12.x",

@@ -9,11 +9,11 @@ var request			= require('request');
 var embedEpubImages = require('./embedEpubImages');
 var child_process	= require('child_process');
 var exec 			= require('child_process').exec;
-var AdmZip			= require('adm-zip');
 
 // This program requires the following external programs:
 // tidy (for validating html)
 // unzip
+// 7z (for compressing)
 // bash
 
 var storiesCached = {};
@@ -44,12 +44,13 @@ transformEpub = function(storyID, fn) {
 	step(
 		function(){
 			var me = this;
-			child_process.execFile("./cleanup.bash", [dir+'/extracted'], function(err) {
+			var child = child_process.execFile("./cleanup.bash", [dir+'/extracted'], function(err) {
 				if (err && err.code != 1) // The script returns 1 if there are warnings. We will ignore warnings (they are fixed automatically).
 					me(err);
 				else
 					me();
 			});
+			child.stdin.end();
 		},
 		function(err){
 			if (err) throw err;
@@ -58,29 +59,21 @@ transformEpub = function(storyID, fn) {
 		function(err){
 			// The last cleanup is required since the cheerio module in the embedEpubImages module screws up the html files.
 			// See https://github.com/MatthewMueller/cheerio/issues/243
-			child_process.execFile("./cleanup.bash", [dir+'/extracted'], function(err) {
+			var child = child_process.execFile("./cleanup.bash", [dir+'/extracted'], function(err) {
 				if (err && err.code != 1) // The script returns 1 if there are warnings. We will ignore warnings (they are fixed automatically).
 					fn(err);
 				else
 					fn();
 			});
+			child.stdin.end();
 		}
 	);
 };
 
 packEpub = function(storyID, fn) {
 	var dir = tmpDir+'/'+storyID;
-	
-	var zip = new AdmZip();
-	zip.addLocalFolder(dir+'/extracted/', '');
-	
-	zip.writeZip(dir+'/processed.epub');
-	fn();
-	// XXX: writeZip is a synchonous function. Change this piece of code once to the one below once it is asynchonous.
-	
-//	zip.writeZip(dir+'/processed.epub', function() {
-//		fn();
-//	});
+	var child = child_process.execFile("./compress.bash", [dir+'/extracted'], fn );
+	child.stdin.end();
 };
 
 serveEpub = function(req, res, storyID) {
