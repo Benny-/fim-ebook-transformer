@@ -9,7 +9,7 @@ var request			= require('request');
 var embedEpubImages = require('./embedEpubImages');
 var child_process	= require('child_process');
 var exec 			= require('child_process').exec;
-var EasyZip			= require('easy-zip').EasyZip;
+var AdmZip			= require('adm-zip');
 
 // This program requires the following external programs:
 // tidy (for validating html)
@@ -71,12 +71,16 @@ transformEpub = function(storyID, fn) {
 packEpub = function(storyID, fn) {
 	var dir = tmpDir+'/'+storyID;
 	
-	var zip = new EasyZip();
-	zip.zipFolder(dir+'/extracted/.', function() {
-		zip.writeToFile(dir+'/processed.epub', function() {
-			fn();
-		});
-	});
+	var zip = new AdmZip();
+	zip.addLocalFolder(dir+'/extracted/', '');
+	
+	zip.writeZip(dir+'/processed.epub');
+	fn();
+	// XXX: writeZip is a synchonous function. Change this piece of code once to the one below once it is asynchonous.
+	
+//	zip.writeZip(dir+'/processed.epub', function() {
+//		fn();
+//	});
 };
 
 serveEpub = function(req, res, storyID) {
