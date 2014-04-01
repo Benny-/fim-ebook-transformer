@@ -8,5 +8,4 @@ This program requires the following external programs:
  - ebook-convert
 
 Known issues:
- - epub manifest is not updated when downloading images from the internet and embedding them.
 
