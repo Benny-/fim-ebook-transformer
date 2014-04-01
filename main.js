@@ -1,171 +1,165 @@
-#!/usr/bin/env nodejs
+#!/usr/bin/env node
 
-var fs				= require('fs');
-var http 			= require('http');
-var url				= require("url");
-var temp			= require('temp');
-var step			= require('step');
-var request			= require('request');
-var embedEpubImages = require('./embedEpubImages');
-var child_process	= require('child_process');
-var exec 			= require('child_process').exec;
+var fsp             = require('fs-promise');
+var http            = require('http');
+var url             = require("url");
+var temp            = require('temp');
+var request         = require('request');
+var express         = require('express');
+var Q               = require('q');
+var path            = require('path')
 
-// This program requires the following external programs:
-// tidy (for validating html)
-// unzip
-// zip
-// bash
+var fimfic = require('./lib/fimfic');
+var ebook = require('./lib/ebook');
 
 var storiesCached = {};
-var tmpDir = temp.mkdirSync("downloaded-epubs");
-console.log("Using tmpdir:", tmpDir)
+var cacheDir = temp.mkdirSync("downloaded-epubs");
+console.log("Using cacheDir:", cacheDir)
+Q.longStackSupport = true;
+var app = express();
+var server = http.createServer(app);
 
-downloadEpub = function(storyID, fn) {
-	var dir = tmpDir+'/'+storyID;
-	fs.mkdir(dir, function() {
-		var destStream = fs.createWriteStream( dir+'/raw.epub' );
-		request.get('http://www.fimfiction.net/download_epub.php?story='+storyID).pipe(destStream); // XXX: Carefull, no error checking happening here.
-		destStream.once('close', function() {
-			console.log("Finished downloading story:", storyID);
-			fn();
-		});
-	});
+app.set('port', process.env.PORT || 4100);
+app.configure('development', function(){
+    app.use(express.logger('dev'));
+    app.use(express.errorHandler());
+})
+app.use(express.static('public'))
+
+// This param will only add the extension to the req object.
+// The filename itself is NOT used.
+//
+// The following are thus equal are will return the same response:
+// example.com/book/9/download/book.epub
+// example.com/book/9/download/the-greatest-equine-who-has-ever-lived.epub
+app.param('filename', function(req, res, next, filename) {
+    var extension = path.extname(filename)
+    if(extension)
+    {
+        var validExtension = false;
+        if(extension == '.epub')
+            validExtension = true;
+        if(extension == '.mobi')
+            validExtension = true;
+        
+        if(validExtension)
+        {
+            req.extension = extension;
+            next();
+        }
+        else
+        {
+            res.status(400);
+            res.set('Content-Type', 'text/plain'); // XXX: Throwing a error in next line overrides this.
+            next(new Error('The extension '+extension+' is not supported. This server is case sensitive. Contact a administrator if you would like this extension to be supported.'));
+        }
+    }
+    else
+    {
+        res.status(400);
+        res.set('Content-Type', 'text/plain'); // XXX: Throwing a error in next line overrides this.
+        next(new Error('No extension.'));
+    }
+});
+
+app.param('book_id', function(req, res, next, book_id) {
+    book_id = parseInt(book_id, 10)
+    if( book_id )
+    {
+        req.book_id = +book_id;
+        next();
+    }
+    else
+        next(new Error('Invalid book id.'));
+});
+
+var uploadFile = function(res, filename) {
+    var deferred = Q.defer();
+    res.sendfile( filename, { maxAge:1000*60*60*24*7 }, function(err){
+        if(err)
+            deferred.reject( err );
+        else
+            deferred.resolve(filename);
+    });
+    return deferred.promise;
 };
 
-extractEpub = function(storyID, fn) {
-	var dir = tmpDir+'/'+storyID;
-	var child = exec('unzip '+dir+'/raw.epub -d '+dir+'/extracted', fn);
-	child.stdin.end();
-};
+// This function assumes the ebook already exist
+var serveBook = function(res, extension, book_dir) {
+    return uploadFile(res, path.join(book_dir, "processed"+extension))
+}
 
-transformEpub = function(storyID, fn) {
-	var dir = tmpDir+'/'+storyID;
-	
-	step(
-		function(){
-			var me = this;
-			var child = child_process.execFile("./cleanup.bash", [dir+'/extracted'], function(err) {
-				if (err && err.code != 1) // The script returns 1 if there are warnings. We will ignore warnings (they are fixed automatically).
-					me(err);
-				else
-					me();
-			});
-			child.stdin.end();
-		},
-		function(err){
-			if (err) throw err;
-			embedEpubImages(dir+'/extracted/', this);
-		},
-		function(err){
-			// The last cleanup is required since the cheerio module in the embedEpubImages module screws up the html files.
-			// See https://github.com/MatthewMueller/cheerio/issues/243
-			var child = child_process.execFile("./cleanup.bash", [dir+'/extracted'], function(err) {
-				if (err && err.code != 1) // The script returns 1 if there are warnings. We will ignore warnings (they are fixed automatically).
-					fn(err);
-				else
-					fn();
-			});
-			child.stdin.end();
-		}
-	);
-};
+app.get('/book/:book_id/download/:filename', function(req, res){
+    
+    // In OPDS world we call them books.
+    // In fimfic world we call them stories.
+    // But they are just the same things.
+    var storyID = req.book_id;
+    var book_dir = path.join(cacheDir, String(storyID));
+    
+    if(storiesCached[storyID])
+    {
+        // console.log("Cache hit for story",storyID);
+        serveBook(res, req.extension, book_dir)
+        .catch(function (err) {
+            console.error(err);
+            if(err.errno == 34)
+                res.send(404, 'File does not exist' );
+            else
+                res.send(500, 'Could not send you the requested file: '+err.message );
+            delete storiesCached[storyID];
+        })
+        .done();
+    }
+    else if (storiesCached[storyID] === false)
+    {
+        // The story is being processed by another request.
+        res.writeHead(429, {'Content-Type': 'text/plain'});
+        res.write("429, Too Many Requests. The story is being processed. Please try again in a few seconds. Huge ebooks with lots of images may take a minute. Contact administrator if error persists.");
+        res.end();
+    }
+    else
+    {
+        storiesCached[storyID] = false;
+        
+        fsp.mkdir( book_dir )
+        .then( function() { return fimfic.downloadStory(storyID, path.join(book_dir, "from_fimfic.epub"))} )
+        .then( function() { return ebook.extract(path.join(book_dir, "from_fimfic.epub"), path.join(book_dir, "tmp_extracted")) } )
+        .then( function() { return ebook.tidy(path.join(book_dir, "tmp_extracted")) } ) // Tidy before embedding images.
+        .then( function() { return ebook.embedImages(path.join(book_dir, "tmp_extracted")) } )
+        .then( function() { return ebook.tidy(path.join(book_dir, "tmp_extracted")) } ) // Tidy after embedding images as the embed image function messes up the html.
+        .then( function() { return ebook.pack(path.join(book_dir, "tmp_extracted"), path.join(book_dir, "packed.epub")) } )
+        .then( function() {
+                var promises = []
+                promises.push( ebook.convert(path.join(book_dir, "packed.epub"), path.join(book_dir, "processed.epub"), ['--no-default-epub-cover']) )
+                promises.push( ebook.convert(path.join(book_dir, "packed.epub"), path.join(book_dir, "processed.mobi"), []) )
+                return Q.all(promises)
+             })
+        .then( function() {
+            storiesCached[storyID] = true;
+            console.log("Story",storyID,"succesfully cached")
+            
+            serveBook(res, req.extension, book_dir)
+            .catch(function (err) {
+                console.error(err);
+                if(err.errno == 34)
+                    res.send(404, 'File does not exist' );
+                else
+                    res.send(500, 'Could not send you the requested file: '+err.message );
+            })
+            .done()
+        })
+        .catch(function (err) {
+            console.error(err);
+            res.send(500, 'Could not process the file: '+err.message );
+            delete storiesCached[storyID];
+        })
+        .done()
+    }
+    
+});
 
-packEpub = function(storyID, fn) {
-	var dir = tmpDir+'/'+storyID;
-	var child = child_process.execFile("./compress.bash", [dir+'/extracted'], fn );
-	child.stdin.end();
-};
-
-serveEpub = function(req, res, storyID) {
-	var dir = tmpDir+'/'+storyID;
-	
-	fs.readFile(dir+"/processed.epub", function (err, data) {
-		if (err)
-		{
-			console.log(err);
-			res.writeHead(500, {'Content-Type': 'text/plain'});
-			res.write("Something went terrible wrong when serving the epub");
-			res.end();
-		}
-		else
-		{
-			res.writeHead(200, { 'Content-Type': 'application/epub+zip ', 'Content-Disposition': 'attachment; filename="'+storyID+'.epub";' });
-			
-			
-			res.write(data);
-			res.end();
-		}
-	});
-};
-
-http.createServer(function (req, res) {
-	var uri = url.parse(req.url);
-	
-	if(!uri.query)
-	{
-		res.writeHead(400, {'Content-Type': 'text/plain'});
-		res.write("400, Bad Request: Expecting a query string. Example: /api/story.epub?story=73063")
-		res.end();
-	}
-	else
-	{
-		var storyID = uri.query.split('=').pop();
-		if(!storyID)
-		{
-			res.writeHead(400, {'Content-Type': 'text/plain'});
-			res.write("400, Bad Request: Expecting story id. Example: /api/story.epub?story=73063")
-			res.end();
-		}
-		else if(storiesCached[storyID])
-		{
-			console.log("Cache hit for story",storyID);
-			serveEpub(req, res, storyID);
-		}
-		else if(storiesCached[storyID] === false)
-		{
-			// The story is being processed by another request.
-			console.log("A 429 occured for story",storyID);
-			res.writeHead(429, {'Content-Type': 'text/plain'});
-			res.write("429, Too Many Requests. The requested story is being processed. Please try again in a few seconds.");
-			res.end();
-		}
-		else
-		{
-			storiesCached[storyID] = false; // Indicate the story is being processed.
-			step(
-				function download() {
-					downloadEpub( storyID, this );
-			  	},
-			  	function extract(err) {
-			  		if (err) throw err;
-			    	extractEpub( storyID, this );
-			  	},
-			  	function transform(err) {
-			    	if (err) throw err;
-			    	transformEpub( storyID, this );
-			  	},
-			  	function pack(err) {
-			  		if (err) throw err;
-			    	packEpub( storyID, this );
-			  	},
-			  	function response(err) {
-			  		if(err)
-			  		{
-			  			console.log(err);
-						res.writeHead(500, {'Content-Type': 'text/plain'});
-						res.write("500, Internal Server Error. Please try again in a few days.")
-						res.end();
-			  		}
-			  		else
-			  		{
-			  			console.log("story",storyID,"is succesfully cached");
-			  			storiesCached[storyID] = true;
-			  			serveEpub(req, res, storyID);
-			  		}
-			  	}
-			);
-		}
-
-	}
-}).listen(8888);
+server.listen(app.get('port'), function(){
+    console.log('Express server listening on port ' + app.get('port'));
+});
 
