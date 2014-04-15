@@ -1,7 +1,7 @@
 {
   "name": "fim-ebook-transformer",
-  "version": "1.0.0",
-  "description": "Transforms fimfic epubs. Embeds images and convert to mobi",
+  "version": "1.0.1",
+  "description": "Transforms fimfiction.net's epubs. Embeds images and convert to mobi",
   "scripts": {
   	"start": "node ./main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -9,6 +9,11 @@
   "repository": "",
   "keywords": [
     "Friendship",
+    "Friendship is magic",
+    "ponies",
+    "MyLittlePony",
+    "mlp",
+    "fanfiction",
     "epub",
     "mobi",
     "calibre",

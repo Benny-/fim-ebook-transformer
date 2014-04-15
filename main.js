@@ -97,7 +97,7 @@ app.get('/book/:book_id/download/:filename', function(req, res){
     var storyID = req.book_id;
     var book_dir = path.join(cacheDir, String(storyID));
     
-    if(storiesCached[storyID])
+    if(storiesCached[storyID] === true)
     {
         // console.log("Cache hit for story",storyID);
         serveBook(res, req.extension, book_dir)
@@ -115,7 +115,14 @@ app.get('/book/:book_id/download/:filename', function(req, res){
     {
         // The story is being processed by another request.
         res.writeHead(429, {'Content-Type': 'text/plain'});
-        res.write("429, Too Many Requests. The story is being processed. Please try again in a few seconds. Huge ebooks with lots of images may take a minute. Contact administrator if error persists.");
+        res.write("429, Too Many Requests. The story is being processed. Please try again in a few seconds. Huge ebooks with lots of images may take a minute or more. Contact administrator if error persists.");
+        res.end();
+    }
+    else if (storiesCached[storyID])
+    {
+        // The story was never successfully processed by another request.
+        res.writeHead(503, {'Content-Type': 'text/plain'});
+        res.write("503, Service Unavailable. We tried to process this ebook at a earlier time but failed at that time: " + storiesCached[storyID].message );
         res.end();
     }
     else
@@ -148,11 +155,13 @@ app.get('/book/:book_id/download/:filename', function(req, res){
                     res.send(500, 'Could not send you the requested file: '+err.message );
             })
             .done()
+            
+            // TODO: Remove temporarely files used in the conversion/extraction process.
         })
         .catch(function (err) {
             console.error(err);
             res.send(500, 'Could not process the file: '+err.message );
-            delete storiesCached[storyID];
+            storiesCached[storyID] = err;
         })
         .done()
     }
