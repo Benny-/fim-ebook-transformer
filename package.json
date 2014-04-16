@@ -3,7 +3,7 @@
   "version": "1.0.1",
   "description": "Transforms fimfiction.net's epubs. Embeds images and convert to mobi",
   "scripts": {
-  	"start": "node ./main.js",
+    "start": "node ./main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": "",
@@ -25,10 +25,10 @@
     "express"   :  "3.4.x",
     "fs-promise":  "0.1.x",
     "q"         :  "2.0.x",
-	"temp"		:  "0.7.x",
+    "temp"      :  "0.7.x",
     "request"   :  "2.34.x",
     "cheerio"   :  "0.13.x",
-    "glob"		:  "3.2.x"
+    "glob"      :  "3.2.x"
   },
   "author": "Benny",
   "license": "WTFPL",
