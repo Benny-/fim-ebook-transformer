@@ -1,8 +1,7 @@
-
 fim-ebook-transformer
 =======================
 
-Web service to download ebooks from `fimfiction.net <https://www.fimfiction.net/>`. It embeds any external images and runs calibre to remove any errors in the ebook. A sample service might be running `here <http://㑤.com:4100/>`_
+Web service to download ebooks from `fimfiction.net <https://www.fimfiction.net/>`_. It embeds any external images and runs calibre to remove any errors in the ebook. A sample service might be running on http://xn--t3k.com:4100/
 
 Dependecies
 ------------
@@ -36,5 +35,5 @@ Known issues
 
 - A express request timeouts after 2 minutes with a 200 http code. This happens while converting a huge ebook.
 - A ebook is converted to a .epub and a .mobi regardless if only one of the two was requested.
-- It is slow.
+- It is slow. (ebook-convert is CPU bound, multiple cores help when converting multiple ebooks)
 
