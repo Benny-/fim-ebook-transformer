@@ -33,7 +33,7 @@ Running:
 Known issues
 ------------
 
-- A express request timeouts after 2 minutes with a 200 http code. This happens while converting a huge ebook.
+- A express request timeouts after 2 minutes. This happens while converting a huge ebook.
 - A ebook is converted to a .epub and a .mobi regardless if only one of the two was requested.
 - It is slow. (ebook-convert is CPU bound, multiple cores help when converting multiple ebooks)
 

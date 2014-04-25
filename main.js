@@ -6,8 +6,11 @@ var url             = require("url");
 var temp            = require('temp');
 var request         = require('request');
 var express         = require('express');
+var morgan          = require('morgan');
+var errorhandler    = require('errorhandler')
+var serve_static    = require('serve-static');
 var Q               = require('q');
-var path            = require('path')
+var path            = require('path');
 
 var fimfic = require('./lib/fimfic');
 var ebook = require('./lib/ebook');
@@ -20,11 +23,11 @@ var app = express();
 var server = http.createServer(app);
 
 app.set('port', process.env.PORT || 4100);
-app.configure('development', function(){
-    app.use(express.logger('dev'));
-    app.use(express.errorHandler());
-})
-app.use(express.static('public'))
+if ('development' == app.get('env')) {
+    app.use(morgan('dev'));
+    app.use(errorhandler());
+}
+app.use(serve_static('public'))
 
 // This param will only add the extension to the req object.
 // The filename itself is NOT used.
