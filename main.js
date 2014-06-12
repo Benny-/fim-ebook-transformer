@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 var fsp             = require('fs-promise');
+var fsp_extra       = require('fs-promise'); // fs-extra wrapped in promise
 var http            = require('http');
 var url             = require("url");
 var temp            = require('temp');
@@ -92,6 +93,33 @@ var serveBook = function(res, extension, book_dir) {
     return uploadFile(res, path.join(book_dir, "processed"+extension))
 }
 
+// Bust the cache
+app.get('/book/:book_id/bust_cache', function(req, res){
+
+    var storyID = req.book_id;
+    var book_dir = path.join(cacheDir, String(storyID));
+    
+    res.set('Content-Type', 'text/plain');
+    if (storiesCached.hasOwnProperty(storyID))
+    {
+        if (storiesCached[storyID] !== false)
+        {
+            fsp_extra.remove( book_dir )
+            .then( function(){ delete storiesCached[storyID] } )
+            .then( function(){ res.send('Done') } )
+            .done()
+        }
+        else
+        {
+            res.send(500, '500 Internal Server Error: Book exist in a invalid state. Try waiting.');
+        }
+    }
+    else
+    {
+        res.send(412, '412 Precondition Failed: Book is not yet cached');
+    }
+})
+
 app.get('/book/:book_id/download/:filename', function(req, res){
     
     // In OPDS world we call them books.
@@ -159,7 +187,7 @@ app.get('/book/:book_id/download/:filename', function(req, res){
             })
             .done()
             
-            // TODO: Remove temporarely files used in the conversion/extraction process.
+            // TODO: Remove temporarily files used in the conversion/extraction process.
         })
         .catch(function (err) {
             console.error(err);
