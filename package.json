@@ -21,18 +21,18 @@
     "fimfiction",
     "fimfic"
   ],
-  "dependencies" : {
-    "express"       : "4.1.x",
-    "morgan"        : "1.0.x",
-    "errorhandler"  : "1.0.x",
-    "serve-static"  : "1.1.x",
-    "fs-extra"      : "0.9.x",
-    "fs-promise"    : "0.2.x",
-    "q"             : "2.0.x",
-    "temp"          : "0.7.x",
-    "request"       : "2.34.x",
-    "cheerio"       : "0.13.x",
-    "glob"          : "3.2.x"
+  "dependencies": {
+    "cheerio": "0.13.x",
+    "errorhandler": "1.0.x",
+    "express": "4.1.x",
+    "fs-extra": "0.9.x",
+    "fs-promise": "^0.2.0",
+    "glob": "3.2.x",
+    "morgan": "1.0.x",
+    "q": "^1.0.1",
+    "request": "2.34.x",
+    "serve-static": "1.1.x",
+    "temp": "0.7.x"
   },
   "author": "Benny",
   "license": "WTFPL",
@@ -40,4 +40,3 @@
     "node": ">=0.10.21"
   }
 }
-
