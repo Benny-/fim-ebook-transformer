@@ -1,7 +1,7 @@
 fim-ebook-transformer
 =======================
 
-Web service to download ebooks from `fimfiction.net <https://www.fimfiction.net/>`_. It embeds any external images and runs calibre to remove any errors in the ebook. A sample service might be running on http://xn--t3k.com:4100/
+Web service to download ebooks from `fimfiction.net <https://www.fimfiction.net/>`_. It embeds any external images and runs calibre to remove any errors in the ebook. A sample service might be running on http://vps.bennyjacobs.nl:4100/
 
 Dependecies
 ------------
