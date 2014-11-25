@@ -5,7 +5,6 @@ var fsp_extra       = require('fs-promise'); // fs-extra wrapped in promise
 var http            = require('http');
 var url             = require("url");
 var temp            = require('temp');
-var request         = require('request');
 var express         = require('express');
 var morgan          = require('morgan');
 var errorhandler    = require('errorhandler')
@@ -134,6 +133,7 @@ app.get('/book/:book_id/download/:filename', function(req, res){
         serveBook(res, req.extension, book_dir)
         .catch(function (err) {
             console.error(err);
+            res.set('Content-Type', 'text/plain');
             if(err.errno == 34)
                 res.send(404, 'File does not exist' );
             else
@@ -161,16 +161,43 @@ app.get('/book/:book_id/download/:filename', function(req, res){
         storiesCached[storyID] = false;
         
         fsp.mkdir( book_dir )
-        .then( function() { return fimfic.downloadStory(storyID, path.join(book_dir, "from_fimfic.epub"))} )
-        .then( function() { return ebook.extract(path.join(book_dir, "from_fimfic.epub"), path.join(book_dir, "tmp_extracted")) } )
-        .then( function() { return ebook.tidy(path.join(book_dir, "tmp_extracted")) } ) // Tidy before embedding images.
-        .then( function() { return ebook.embedImages(path.join(book_dir, "tmp_extracted")) } )
-        .then( function() { return ebook.tidy(path.join(book_dir, "tmp_extracted")) } ) // Tidy after embedding images as the embed image function messes up the html.
-        .then( function() { return ebook.pack(path.join(book_dir, "tmp_extracted"), path.join(book_dir, "packed.epub")) } )
-        .then( function() {
+        .then( function() { return fsp.mkdir( path.join(book_dir,"images"))} )
+        .then( function() { return fimfic.downloadStory(storyID, path.join(book_dir, "from_fimfic.html"))} )
+        .then( function() { return ebook.embedImages_html(path.join(book_dir, "from_fimfic.html"), path.join(book_dir, "embed_images.html"))} )
+        .then( function() { return fimfic.getmetadata(storyID)} )
+        .then( function(story) {
                 var promises = []
-                promises.push( ebook.convert(path.join(book_dir, "packed.epub"), path.join(book_dir, "processed.epub"), ['--no-default-epub-cover']) )
-                promises.push( ebook.convert(path.join(book_dir, "packed.epub"), path.join(book_dir, "processed.mobi"), []) )
+                
+                var args = []
+                var cover = undefined
+                cover = url.resolve("https://www.fimfiction.net/", story.full_image)
+                cover = cover ? cover : url.resolve("https://www.fimfiction.net/", story.image)
+                if(cover)
+                {
+                    args.push('--cover')
+                    args.push(cover)
+                }
+                else
+                {
+                    args.push('--no-default-epub-cover')
+                }
+                args.push('--publisher','https://www.fimfiction.net/')
+                args.push('--authors',story.author.name)
+                var categories = []
+                for(var category in story.categories) {
+                    if(story.categories[category])
+                    {
+                        categories.push(category)
+                    }
+                }
+                if(categories.length > 0)
+                {
+                    args.push('--tags',categories.join(','))
+                }
+                args.push('--title',story.title)
+                
+                promises.push( ebook.convert(path.join(book_dir, "embed_images.html"), path.join(book_dir, "processed.epub"), args) )
+                promises.push( ebook.convert(path.join(book_dir, "embed_images.html"), path.join(book_dir, "processed.mobi"), args) )
                 return Q.all(promises)
              })
         .then( function() {
@@ -180,6 +207,7 @@ app.get('/book/:book_id/download/:filename', function(req, res){
             serveBook(res, req.extension, book_dir)
             .catch(function (err) {
                 console.error(err);
+                res.set('Content-Type', 'text/plain');
                 if(err.errno == 34)
                     res.send(404, 'File does not exist' );
                 else
@@ -191,6 +219,7 @@ app.get('/book/:book_id/download/:filename', function(req, res){
         })
         .catch(function (err) {
             console.error(err);
+            res.set('Content-Type', 'text/plain');
             res.send(500, 'Could not process the file: '+err.message );
             storiesCached[storyID] = err;
         })

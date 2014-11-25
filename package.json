@@ -6,7 +6,10 @@
     "start": "node ./main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": "",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:Benny-/fim-ebook-transformer.git"
+  },
   "keywords": [
     "Friendship",
     "Friendship is magic",
@@ -22,15 +25,14 @@
     "fimfic"
   ],
   "dependencies": {
-    "cheerio": "0.13.x",
+    "cheerio": "0.18.x",
     "errorhandler": "1.0.x",
     "express": "4.1.x",
     "fs-extra": "0.9.x",
     "fs-promise": "^0.2.0",
-    "glob": "3.2.x",
     "morgan": "1.0.x",
     "q": "^1.0.1",
-    "request": "2.34.x",
+    "request": "^2.48.0",
     "serve-static": "1.1.x",
     "temp": "0.7.x"
   },

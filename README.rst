@@ -10,9 +10,6 @@ This program is written in JavaScript and requires NodeJS.
 
 This program requires the following external programs in your path:
 
-- unzip
-- tidy
-- zip
 - ebook-convert (part of calibre)
 
 Installation and running
