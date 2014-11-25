@@ -6,7 +6,7 @@ Web service to download ebooks from `fimfiction.net <https://www.fimfiction.net/
 Dependecies
 ------------
 
-This program is written in JavaScript and requires [NodeJS](https://nodejs.org/download/).
+This program is written in JavaScript and requires `NodeJS <https://nodejs.org/download/>`_.
 
 This program requires the following external programs in your path:
 
