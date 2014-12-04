@@ -169,6 +169,7 @@ app.get('/book/:book_id/download/:filename', function(req, res){
                 var promises = []
                 
                 var args = []
+                args.push('--max-toc-links',"0")
                 var cover = undefined
                 cover = url.resolve("https://www.fimfiction.net/", story.full_image)
                 cover = cover ? cover : url.resolve("https://www.fimfiction.net/", story.image)
