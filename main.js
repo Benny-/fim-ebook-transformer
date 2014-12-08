@@ -171,16 +171,11 @@ app.get('/book/:book_id/download/:filename', function(req, res){
                 var args = []
                 args.push('--max-toc-links',"0")
                 var cover = undefined
-                cover = url.resolve("https://www.fimfiction.net/", story.full_image)
-                cover = cover ? cover : url.resolve("https://www.fimfiction.net/", story.image)
+                cover = story.full_image ? url.resolve("https://www.fimfiction.net/", story.full_image) : undefined
+                cover = cover ? cover : ( story.image ? url.resolve("https://www.fimfiction.net/", story.image) : undefined)
                 if(cover)
                 {
-                    args.push('--cover')
-                    args.push(cover)
-                }
-                else
-                {
-                    args.push('--no-default-epub-cover')
+                    args.push('--cover', cover)
                 }
                 args.push('--publisher','https://www.fimfiction.net/')
                 args.push('--authors',story.author.name)
