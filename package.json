@@ -25,6 +25,7 @@
     "fimfic"
   ],
   "dependencies": {
+    "bboxed": "0.2.x",
     "cheerio": "0.18.x",
     "errorhandler": "1.0.x",
     "express": "4.1.x",

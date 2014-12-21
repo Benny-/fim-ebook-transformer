@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+var bboxed          = require('bboxed')
+var cheerio         = require('cheerio');
 var fsp             = require('fs-promise');
 var fsp_extra       = require('fs-promise'); // fs-extra wrapped in promise
 var http            = require('http');
@@ -168,6 +170,10 @@ app.get('/book/:book_id/download/:filename', function(req, res){
         .then( function(story) {
                 var promises = []
                 
+                // Here we call going to call ebook-convert
+                // See the following link for possible arguments:
+                // http://manual.calibre-ebook.com/cli/ebook-convert.html
+                
                 var args = []
                 args.push('--max-toc-links',"0")
                 var cover = undefined
@@ -177,8 +183,14 @@ app.get('/book/:book_id/download/:filename', function(req, res){
                 {
                     args.push('--cover', cover)
                 }
-                args.push('--publisher','https://www.fimfiction.net/')
-                args.push('--authors',story.author.name)
+                args.push('--publisher', 'https://www.fimfiction.net/')
+                args.push('--authors', story.author.name)
+                
+                // story.description is bbcode. But we need plain text.
+                // So we first convert it to html using bboxed.
+                // And then we convert the html to plain text using cheerio.
+                args.push('--comments', cheerio(bboxed(story.description)).text() )
+                
                 var categories = []
                 for(var category in story.categories) {
                     if(story.categories[category])
