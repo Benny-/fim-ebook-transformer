@@ -32,6 +32,7 @@
     "fs-extra": "0.9.x",
     "fs-promise": "^0.2.0",
     "morgan": "1.0.x",
+    "normalize-newline": "^1.0.1",
     "q": "^1.0.1",
     "request": "^2.48.0",
     "serve-static": "1.1.x",

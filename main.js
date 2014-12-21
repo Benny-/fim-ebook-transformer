@@ -1,18 +1,19 @@
 #!/usr/bin/env node
 
-var bboxed          = require('bboxed')
-var cheerio         = require('cheerio');
-var fsp             = require('fs-promise');
-var fsp_extra       = require('fs-promise'); // fs-extra wrapped in promise
-var http            = require('http');
-var url             = require("url");
-var temp            = require('temp');
-var express         = require('express');
-var morgan          = require('morgan');
-var errorhandler    = require('errorhandler')
-var serve_static    = require('serve-static');
-var Q               = require('q');
-var path            = require('path');
+var normalize_newline  = require('normalize-newline')
+var bboxed             = require('bboxed')
+var cheerio            = require('cheerio');
+var fsp                = require('fs-promise');
+var fsp_extra          = require('fs-promise'); // fs-extra wrapped in promise
+var http               = require('http');
+var url                = require("url");
+var temp               = require('temp');
+var express            = require('express');
+var morgan             = require('morgan');
+var errorhandler       = require('errorhandler')
+var serve_static       = require('serve-static');
+var Q                  = require('q');
+var path               = require('path');
 
 var fimfic = require('./lib/fimfic');
 var ebook = require('./lib/ebook');
@@ -189,7 +190,7 @@ app.get('/book/:book_id/download/:filename', function(req, res){
                 // story.description is bbcode. But we need plain text.
                 // So we first convert it to html using bboxed.
                 // And then we convert the html to plain text using cheerio.
-                args.push('--comments', cheerio.load(bboxed(story.description)).root().text() )
+                args.push('--comments', cheerio.load(bboxed(normalize_newline(story.description))).root().text() )
                 
                 var categories = []
                 for(var category in story.categories) {
