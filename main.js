@@ -189,7 +189,7 @@ app.get('/book/:book_id/download/:filename', function(req, res){
                 // story.description is bbcode. But we need plain text.
                 // So we first convert it to html using bboxed.
                 // And then we convert the html to plain text using cheerio.
-                args.push('--comments', cheerio(bboxed(story.description)).text() )
+                args.push('--comments', cheerio.load(bboxed(story.description)).root().text() )
                 
                 var categories = []
                 for(var category in story.categories) {
